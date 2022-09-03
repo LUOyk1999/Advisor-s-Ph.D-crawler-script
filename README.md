@@ -10,7 +10,7 @@ python Advisor-students.py Yann+LeCun
 
 即可获得*Yann LeCun*教授的Ph.D.学生名单，信息来源Openreview。https://openreview.net/
 
-![image-20220903211252801](../AppData/Roaming/Typora/typora-user-images/image-20220903211252801.png)
+![image-20220903211252801](https://raw.githubusercontent.com/LUOyk1999/images/main/images/image-20220903211252801.png)
 
 This is a simple crawler python script to quickly get a list of all Ph.D. students of any one professor.
 
@@ -22,4 +22,4 @@ python Advisor-students.py Yann+LeCun
 
 Information from Openreview. https://openreview.net/
 
-![image-20220903211253962](../AppData/Roaming/Typora/typora-user-images/image-20220903211253962.png)
+![image-20220903211253962](https://raw.githubusercontent.com/LUOyk1999/images/main/images/image-20220903211253962.png)
