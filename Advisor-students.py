@@ -9,6 +9,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from fake_useragent import UserAgent
+from selenium.webdriver.common.by import By
+from dateutil.parser import parse
 
 from gensim import utils
 import re
@@ -36,6 +38,7 @@ def is_same_author(first,second):
         return False
 
 def print_to_file(filename, string_info, mode="a"):
+    # i=0
 	with open(filename, mode) as f:
 		f.write(str(string_info) + "\n")
 
@@ -59,58 +62,95 @@ if len(sys.argv) < 2:
     sys.exit
 
 topauthor = sys.argv[1]
-
-print_to_file("Advisor-student.txt",topauthor)
+print_to_file("Non_student_"+topauthor+".txt",topauthor)
+print_to_file(topauthor+".txt",topauthor)
 driver.get('https://openreview.net/search?term='+topauthor+'&group=all&content=all&source=all')
 driver.implicitly_wait(5)
-driver.find_element_by_xpath("/html/body/div/div[3]/div/div/main/div/form/div[1]/div/div/div[1]/div[2]/input").send_keys('author',Keys.ENTER)
+driver.find_element(By.XPATH,"/html/body/div/div[3]/div/div/main/div/form/div[1]/div/div/div[1]/div[2]/input").send_keys('author',Keys.ENTER)
 driver.implicitly_wait(5)
 
 Student=[]
-def is_advisor(author):
+Non_Student=[]
+already_go=[]
+def is_advisor(author,year):
     Advisor=[]
+    All_Advisor=[]
+    min_year=10000
+    max_year=-1
     driver.implicitly_wait(10)
     author.click()
     driver.implicitly_wait(3)
     try:
-        advisor=driver.find_elements_by_xpath("/html/body/div/div[3]/div/div/main/div/div/div/section[5]/div/div")
-        student=driver.find_element_by_xpath("//*[@id=\"content\"]/div/header/div/h1").text
+        advisor=driver.find_elements(By.XPATH,"/html/body/div/div[3]/div/div/main/div/div/div/section[5]/div/div")
+        student=driver.find_element(By.XPATH,"//*[@id=\"content\"]/div/header/div/h1").text
     except:
         driver.back()
         return
     for i in advisor:
         try:
-            Advisor.append(i.find_element_by_xpath('./div[2]').text)
-            print(i.find_element_by_xpath('./div[2]').text)
+            if("PhD Advisor" in i.find_element(By.XPATH,'./div[1]').text):
+                Advisor.append(i.find_element(By.XPATH,'./div[2]').text)
+                print(i.find_element(By.XPATH,'./div[2]').text+" is Advisor of "+student)
+            if("Advisor" in i.find_element(By.XPATH,'./div[1]').text):
+                All_Advisor.append(i.find_element(By.XPATH,'./div[2]').text)
+                Advisor_year=i.find_element(By.XPATH,'./div[4]').text
+                Advisor_year=Advisor_year.replace("Present", "2022")
+                print(i.find_element(By.XPATH,'./div[2]').text+" is Advisor of "+student+" in "+Advisor_year)
+                Advisor_year=Advisor_year.split(" ¡§C ")
+                min_year=min(min_year,int(Advisor_year[0]))
+                max_year=max(max_year,int(Advisor_year[0]))
+                min_year=min(min_year,int(Advisor_year[1]))
+                max_year=max(max_year,int(Advisor_year[1]))
         except:
             print("No")
+    flag=0
+    for name in All_Advisor:
+        if(is_same_author(topauthor,name)):
+            flag=1
+    if(len(All_Advisor)!=0 and flag==0 and year>=min_year and year<=max_year and (not is_same_author(topauthor,student))):
+        print(All_Advisor,min_year,max_year,student)
+        print_to_file("Non_student_"+topauthor+".txt",student)
+        Non_Student.append(student)
     for name in Advisor:
         if(is_same_author(topauthor,name)):
             if(student not in Student):
                 Student.append(student)
-                print_to_file("Advisor-student.txt",student)
+                print_to_file(topauthor+".txt",student)
             print(student+" is student of "+topauthor)
             break
     print(student)
     driver.back()
 
-while(1):
-    count=0
-    for i in range(25):
-        driver.implicitly_wait(5)
-        paper=driver.find_elements_by_xpath("/html/body/div/div[3]/div/div/main/div/div/ul/li["+str(i+1)+"]/div/div/a")
-        for idx,val in enumerate(paper):
-            driver.implicitly_wait(20)
-            j=driver.find_element_by_xpath("/html/body/div/div[3]/div/div/main/div/div/ul/li["+str(i+1)+"]/div/div/a["+str(idx+1)+"]")
-            author=j.get_attribute("href")
-            if("dblp.org" in author):
-                continue
-            print(author)
+try:
+    while(1):
+        count=0
+        for i in range(25):
+            driver.implicitly_wait(5)
+            paper=driver.find_elements(By.XPATH,"/html/body/div/div[3]/div/div/main/div/div/ul/li["+str(i+1)+"]/div/div/a")
+            year=driver.find_element(By.XPATH,"/html/body/div/div[3]/div/div/main/div/div/ul/li["+str(i+1)+"]/div/ul/li[1]").text
+            year=year.split('(')[0]
             try:
-                is_advisor(j)
+                year=parse(year, fuzzy=True).year
             except:
-                print("skip")
-            count+=1
-    print(count)
-    time.sleep(2)
-    driver.find_element_by_xpath("/html/body/div/div[3]/div/div/main/div/div/nav/ul/li[13]/a").click()
+                continue
+            for idx,val in enumerate(paper):
+                driver.implicitly_wait(20)
+                try:
+                    j=driver.find_element(By.XPATH,"/html/body/div/div[3]/div/div/main/div/div/ul/li["+str(i+1)+"]/div/div/a["+str(idx+1)+"]")
+                    author=j.get_attribute("href")
+                    if("dblp.org" in author):
+                        continue
+                    print(author)
+                    if(author not in already_go):
+                        is_advisor(j,year)
+                        already_go.append(author)
+                except:
+                    print("skip")
+                    continue
+                count+=1
+        print(count)
+        time.sleep(2)
+        driver.find_element(By.XPATH,"/html/body/div/div[3]/div/div/main/div/div/nav/ul/li[13]/a").click()
+except:
+    print(already_go)
+    driver.quit()
